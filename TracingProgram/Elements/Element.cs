@@ -7,6 +7,9 @@ namespace TracingProgram
 {
     interface Element
     {
+        int x { get; }
+        int y { get; }
+        string Name { get; }
         void draw(Graphics g);
     }
 }

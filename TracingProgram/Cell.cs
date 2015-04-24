@@ -7,9 +7,10 @@ namespace TracingProgram
 {
     class Cell
     {
-        public bool free { private set; get; }  //указывает свободна ли ячейка
+        public bool free { set; get; }  //указывает свободна ли ячейка
         //если ячейка свободно, то 0, если занята, то значения от -1 до MAX_INT
-        public int number { private set; get; } 
+        //-1 - если занято, но не текущим проводником
+        public int number { set; get; } 
 
         public Cell()
         {

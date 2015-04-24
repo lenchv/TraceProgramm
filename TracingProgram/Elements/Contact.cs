@@ -11,12 +11,22 @@ namespace TracingProgram
         public int x {get; private set;}
         public int y {get; private set;}
         public bool isChecked {get; set;}
+        public int number { get; protected set; }
+        public string Name { get; protected set; }
         int sizeCell;
-        public Contact(int x, int y, int sizeCell)
+        public Contact() { }
+        public Contact(int x, int y, int sizeCell, int number)
         {
             this.x = x;
             this.y = y;
             this.sizeCell = sizeCell;
+            this.number = number;
+        }
+
+        public Contact(int x, int y, int sizeCell, int number, string name):
+            this(x, y, sizeCell, number)
+        {
+            this.Name = name;
         }
 
         public void draw(Graphics g) {
@@ -59,7 +69,7 @@ namespace TracingProgram
             }
         }
 
-        public void active(Graphics g)
+        public Point active(Graphics g)
         {
             if (this.isChecked)
             {
@@ -71,6 +81,7 @@ namespace TracingProgram
                 this.isChecked = true;
                 this.on(g);
             }
+            return new Point(this.x, this.y);
         }
 
         private void off(Graphics g)

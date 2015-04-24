@@ -17,10 +17,12 @@ namespace TracingProgram
         public Dip16(int x, int y, int sizeCell, string label):base(x,y, sizeCell)
         {
             this.name = label;
+            base.Name = label;
             this.label = "DIP16_" + label;
             this.width = 15;
             this.height = 3;
             this.outPins = 16;
+            base.pins = new Contact[this.outPins];
         }
 
         public override void draw(Graphics g)

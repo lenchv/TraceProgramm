@@ -15,7 +15,8 @@ namespace TracingProgram
         public virtual int height { protected set; get; }
         public virtual int outPins { protected set; get; }
         protected int sizeCell { private set; get; }
-        public List<Contact> pins = new List<Contact>();
+        public string Name { get; protected set; }
+        public Contact[] pins;
         public Chip(int x, int y, int sizeCell)
         {
             this.x = x;
@@ -24,6 +25,8 @@ namespace TracingProgram
             this.width = 5;
             this.height = 3;
             this.outPins = 4;
+            this.Name = "Chip";
+            this.pins = new Contact[this.outPins];
         }
 
         public virtual void draw(Graphics g) 
@@ -34,7 +37,7 @@ namespace TracingProgram
                            this.sizeCell * this.width,
                            this.sizeCell * this.height
                            );
-            if (pins.Count > 0)
+            if (pins[pins.Length-1] != null)
             {
                 foreach (Contact c in pins)
                 {
@@ -47,14 +50,14 @@ namespace TracingProgram
                 {
                     Contact c = new Contact(this.x + i * 2,
                                                             this.y,
-                                                            this.sizeCell);
+                                                            this.sizeCell, this.outPins - i);
                     c.draw(g);
-                    pins.Add(c);
+                    pins[this.outPins-i-1] = c;
                     c = new Contact(this.x + i * 2,
                                             this.y + (this.height - 1),
-                                            this.sizeCell);
+                                            this.sizeCell, i+1);
                     c.draw(g);
-                    pins.Add(c);
+                    pins[i] = c;
                 }
             }
             g.FillPie(Brushes.Black, topX - sizeCell / 2, topY + sizeCell, sizeCell, sizeCell, 270, 180);
@@ -81,7 +84,7 @@ namespace TracingProgram
             }
         }
 
-        public void checkContact(Graphics g, int x, int y)
+        public Point checkContact(Graphics g, int x, int y)
         {
             foreach (Contact cont in pins)
             {
@@ -90,9 +93,15 @@ namespace TracingProgram
                     cont.bottomCoord.X > x &&
                     cont.bottomCoord.Y > y)
                 {
-                    cont.active(g);
+                    return cont.active(g);
                 }
             }
+            return new Point(-1, -1);
+        }
+
+        public Point getContactPoint(int number)
+        {
+            return new Point(this.pins[number - 1].x, this.pins[number-1].y);
         }
     }
 }

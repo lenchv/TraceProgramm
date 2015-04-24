@@ -13,7 +13,7 @@ namespace TracingProgram
             this.number = n;
         }
 
-        public void draw(Graphics g)
+        public override void draw(Graphics g)
         {
             int fontSize = 10;
             if (this.number / 100 != 0)

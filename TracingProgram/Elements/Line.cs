@@ -55,5 +55,13 @@ namespace TracingProgram
 
         public virtual void draw(Graphics g) {}
 
+        public string Name
+        {
+            get
+            {
+                return "line";
+            }
+        }
+
     }
 }
