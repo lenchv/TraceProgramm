@@ -40,6 +40,10 @@ namespace TracingProgram
 
         void Form1_Load(object sender, EventArgs e)
         {
+            /*QueueTrace q = new QueueTrace(new Point(0, 0));
+            q.Add(new Point(50, 40));
+            distanation.Enqueue(q);*/
+
             addElementsFromFile("test.xml");
             pbMainGrid.Width = widthGrid * sizeCell;
             pbMainGrid.Height = heightGrid * sizeCell;
@@ -261,29 +265,39 @@ namespace TracingProgram
             }
         }
 
-        private void methodConnectionComplexes(Cell[,] grid, QueueTrace queueTrace) 
+        private void methodConnectionComplexes(Cell[,] field, QueueTrace queueTrace) 
         {
-            Cell[,] field = new Cell[grid.GetLength(0), grid.GetLength(1)];
-            Array.Copy(grid, field, field.GetLength(0) * field.GetLength(1));
-            Point dst = queueTrace.Distantion;
-            int x = queueTrace.source.X;
-            int y = queueTrace.source.Y;
-            field[y, x].number = 0;
-            Point[] coord = new Point[field.GetLength(0) * field.GetLength(1)];
-            Point[] newCoord = new Point[field.GetLength(0) * field.GetLength(1)];
-            coord[0] = new Point(x, y);
-            int count = 1;
-            int newCount = 0;
-           /* while (dst.X != -1)
-            {*/
-            int j = 0;
-            bool flag = true;
-                while (j<100 && flag)//x != dst.X && y != dst.Y)
+            Point dst = queueTrace.Distantion;  //точка приемника
+            int x = queueTrace.source.X;        //абсцисса источника
+            int y = queueTrace.source.Y;        //ордината источника
+            field[y, x].number = 0;             //номер источника равен 0, чтобы начинать отсчет с него
+            int maxPoint = field.GetLength(0) * field.GetLength(1); //максимальное количество точек на поле
+            Point[] coord = new Point[maxPoint];    //массив точек, от котрых ведется отсчет в текущий момент
+            Point[] newCoord = new Point[maxPoint]; //массив формируемых точек, от которых будет вестись отсчет в следующий момент
+            Point[] lineCoord = new Point[maxPoint]; //массив стартовых точек от линий
+            int countLine = 0; //количество точек линий
+            coord[0] = new Point(x, y);             //инициализация источника
+            int count = 1;                          //количество точек от которых ведется отсчет в текущий момент
+            int newCount = 0;                       //кол-во точек, от которых будет вестись отсчет в следующий момент
+
+            TraceLine tl = null;
+
+            Point[] allLinePoints = new Point[maxPoint];
+            int countAllLine = 0;
+            while (dst.X != -1)
+            {
+                int j = 0;  //индекс итераций
+                bool flag = true;   //флаг нахождения точки приемника
+                //цикл ведется до тех пор пока не найдена точка приемника, или заполнено все поле, а приемник не найден
+                while (j<(maxPoint/2) && flag)
                 {
+                    //цикл по точкам, от которых ведется отсчет в текущий момент
                     for (int i = 0; i < count; i++)
                     {
+                        //текущие координаты
                         x = coord[i].X;
                         y = coord[i].Y;
+                        //если следующая ячейка приемник, выход из цикла
                         if (x + 1 == dst.X && y == dst.Y ||
                             x - 1 == dst.X && y == dst.Y ||
                             x == dst.X && y + 1 == dst.Y ||
@@ -292,17 +306,19 @@ namespace TracingProgram
                             flag = false;
                             break;
                         }
+                        //если справа свободно
                         if (x < field.GetLength(1)-1 && field[y, x + 1].free)
                         {
-                            newCoord[newCount] = new Point(x+1,y);
-                            field[y, x + 1].free = false;
-                            field[y, x + 1].number = field[y, x].number+1;
-                            newCount++;
-                            
+                            newCoord[newCount] = new Point(x+1,y);  //следующая точка отсчета
+                            field[y, x + 1].free = false;           //ячейка занята
+                            field[y, x + 1].number = field[y, x].number+1;  //запись номера ячейки на 1 больше чем предыдущая
+                            newCount++;                             //увеличения счетчика кол-ва следующих точек
+                            //вывод на экран номера ячейки
                             Number n = new Number(x + 1, y, sizeCell, field[y, x + 1].number);
                             n.draw(pbMainGrid.CreateGraphics());
                             chips.Add(n);
                         }
+                        //если слева свободно
                         if (x > 0 && field[y, x - 1].free)
                         {
                             newCoord[newCount] = new Point(x - 1,y);
@@ -313,6 +329,7 @@ namespace TracingProgram
                             n.draw(pbMainGrid.CreateGraphics());
                             chips.Add(n);
                         }
+                        //если снизу свободно
                         if (y < field.GetLength(0)-1 && field[y+1, x].free)
                         {
                             newCoord[newCount] = new Point(x, y + 1);
@@ -323,6 +340,7 @@ namespace TracingProgram
                             n.draw(pbMainGrid.CreateGraphics());
                             chips.Add(n);
                         }
+                        //если сверху свободно
                         if (y >0 && field[y - 1, x].free)
                         {
                             newCoord[newCount] = new Point(x, y - 1);
@@ -334,27 +352,62 @@ namespace TracingProgram
                             chips.Add(n);
                         }
                     }
-                    count = newCount;
-                    Array.Copy(newCoord, coord, newCount);
-                    Array.Clear(newCoord, 0, newCount);
-                    newCount = 0;
-                    j++;
+                    count = newCount;                       //перезапись кол-ва текущих точек
+                    Array.Copy(newCoord, coord, newCount);  //перезапись текущих точек
+                    Array.Clear(newCoord, 0, newCount);     //обнуление массива следующих точек
+                    newCount = 0;                           //обнуление кол-ва след. точек
+                    j++;                                    //увеличение индекса итерации добавления точек
                 }
+                //если найден приемник, то нарисовать трассу
+                if (!flag)
+                {
+                    if (tl == null)
+                    {
+                        tl = new TraceLine(field, dst.X, dst.Y, sizeCell);
+                    }
+                    else
+                    {
+                        Array.Copy(tl.path, 0, allLinePoints, countAllLine, tl.path.Length);
+                        countAllLine += tl.path.Length;
+                        tl = new TraceLineToLine(field, dst.X, dst.Y, sizeCell, allLinePoints);
+                    }
+                    tl.draw(pbMainGrid.CreateGraphics());
+                    chips.Add(tl);
+                    for(int i = 0; i < field.GetLength(0); i++) {
+                        for (j = 0; j < field.GetLength(1); j++ )
+                        {
+                            if (field[i, j].number != -1)
+                            {
+                                field[i, j].number = 0;
+                                field[i, j].free = true;
+                            }
+                        }
+                    }
 
-                TraceLine tl = new TraceLine(field, dst.X, dst.Y, sizeCell);
-                tl.draw(pbMainGrid.CreateGraphics());
-                chips.Add(tl);
+                    Array.Copy(tl.path, 1, lineCoord, countLine, tl.path.Length-1);
+                    countLine += tl.path.Length - 2;
+                    Array.Copy(lineCoord, coord, countLine);
+                    count = countLine;
+
+                    foreach (Point p in lineCoord)
+                    {
+                        field[p.Y, p.X].free = false;
+                    }
+                }
                 //drawTrace(field, dst);
-                //dst = queueTrace.Distantion;
-            //}
+                dst = queueTrace.Distantion;
+            }
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)
         {
-
-            methodConnectionComplexes(grid, distanation.Dequeue());
-            chips.RemoveAll(removeNumber);
-            fillCells();
+            try
+            {
+                methodConnectionComplexes(grid, distanation.Dequeue());
+                chips.RemoveAll(removeNumber);
+                fillCells();
+            }
+            catch (InvalidOperationException) { }
         }
 
         private static bool removeNumber(Element el)

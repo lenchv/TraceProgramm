@@ -44,6 +44,8 @@ namespace TracingProgram
                 path[0] = new Point(this.x, this.y);
                 path[1] = new Point(current.X, current.Y);
                 direction = getDirection(current, new Point(this.x, this.y));
+                //Debug.WriteLine("------------------------------------------");
+
                 while (field[current.Y, current.X].number > 0) 
                 {
                     if (direction == Direction.HORIZONTAL)
@@ -54,8 +56,13 @@ namespace TracingProgram
                     {
                         current = getNextVertical(field, current);
                     }
+                    if (current.X == -1)
+                    {
+                        break;
+                    }
                     i++;
                     path[i] = current;
+                   // Debug.WriteLine(current);
                     direction = getDirection(path[i], path[i - 1]);
                 }
             }
@@ -76,10 +83,11 @@ namespace TracingProgram
             {
                 return new Point(cur.X, cur.Y - 1);
             }
-            else
+            else if (field[cur.Y, cur.X].number - 1 == field[cur.Y + 1, cur.X].number)
             {
                 return new Point(cur.X, cur.Y + 1);
             }
+            return new Point(-1,-1);
         }
 
         Point getNextVertical(Cell[,] field, Point cur)
@@ -97,10 +105,11 @@ namespace TracingProgram
             {
                 return new Point(cur.X - 1, cur.Y);
             }
-            else
+            else if (field[cur.Y, cur.X].number - 1 == field[cur.Y, cur.X + 1].number)
             {
                 return new Point(cur.X + 1, cur.Y);
             }
+            return new Point(-1,-1);
         }
 
         Direction getDirection(Point cur, Point prev)
@@ -136,7 +145,7 @@ namespace TracingProgram
             return new Point(-1, -1);
         }
 
-        public void draw(Graphics g)
+        public virtual void draw(Graphics g)
         {
             Element el;
             Direction prev;
@@ -201,8 +210,7 @@ namespace TracingProgram
                 else
                 {
                     if ((path[i - 1].X > path[i + 1].X && path[i - 1].Y > path[i + 1].Y && prev == Direction.HORIZONTAL) ||
-                        (path[i - 1].X < path[i + 1].X && path[i - 1].Y < path[i + 1].Y && prev == Direction.VERTICAL)
-                        )
+                        (path[i - 1].X < path[i + 1].X && path[i - 1].Y < path[i + 1].Y && prev == Direction.VERTICAL))
                     {
                         el = new TopToRight(path[i].X, path[i].Y, sizeCell);
                         el.draw(g);
