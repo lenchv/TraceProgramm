@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WorkField
+	width="50"
+	height="40"
+	sizeCell="16"
+	>
+	<Elements>
+		<Dip14 x="10" y="5" Name="DD1"/>
+		<Dip16 x="10" y="15" Name="DD2"/>
+		<Dip24 x="10" y="25" Name="DD3"/>
+		<Contact x="2" y="5" Name="X1"/>
+		<Contact x="2" y="8" Name="X2"/>
+		<Contact x="2" y="11" Name="X3"/>
+		<Contact x="2" y="14" Name="X4"/>
+	</Elements>
+	<Connections>
+		<DD1 contact="12">
+			<DD2 contact="3"/>
+			<DD2 contact="5"/>
+			<DD3 contact="6"/>
+		</DD1>
+		<X1 contact="1">
+			<DD1 contact="14"/>	
+			<DD2 contact="16"/>	
+			<DD3 contact="24"/>	
+		</X1>
+		<X4 contact="1">
+			<DD1 contact="7"/>	
+			<DD2 contact="8"/>	
+			<DD3 contact="12"/>	
+		</X4>
+		<DD1 contact="1">
+			<X2 contact="1"/>
+		</DD1>
+	</Connections>
+</WorkField>
