@@ -34,16 +34,13 @@ namespace TracingProgram
             tsbClearGrid.Click += tsbClearField_Click;
             /**Перерисовка компонентов*/
             pbMainGrid.Paint += pbMainGrid_Paint;
+            /**клик по дискретному полю*/
             pbMainGrid.MouseClick += pbMainGrid_MouseClick;
 
         }
 
         void Form1_Load(object sender, EventArgs e)
         {
-            /*QueueTrace q = new QueueTrace(new Point(0, 0));
-            q.Add(new Point(50, 40));
-            distanation.Enqueue(q);*/
-
             addElementsFromFile("test.xml");
             pbMainGrid.Width = widthGrid * sizeCell;
             pbMainGrid.Height = heightGrid * sizeCell;
@@ -51,15 +48,6 @@ namespace TracingProgram
             grid = new Cell[heightGrid, widthGrid];
 
             fillCells();
-            /*for (int i = 0; i < heightGrid; i++)
-            {
-                for (int j = 0; j < widthGrid; j++)
-                {
-                    Number n = new Number(j, i, sizeCell, grid[i, j].number);
-                    n.draw(pbMainGrid.CreateGraphics());
-                    chips.Add(n);
-                }
-            }*/
 
         }
 
@@ -251,10 +239,12 @@ namespace TracingProgram
                 }
                 else if (chip is TraceLine)
                 {
-                    foreach (Point p in (chip as TraceLine).path)
+                    Point[] p = (chip as TraceLine).path;
+                    for (int i = 1; i < p.Length-1;  i++)
                     {
-                        grid[p.Y, p.X].free = false;
-                        grid[p.Y, p.X].number = -1;
+                        grid[p[i].Y, p[i].X].free = false;
+                        grid[p[i].Y, p[i].X].line = true;
+                        grid[p[i].Y, p[i].X].number = -1;
                     }
                 }
                 else if (!(chip is Number))
@@ -275,15 +265,20 @@ namespace TracingProgram
             Point[] coord = new Point[maxPoint];    //массив точек, от котрых ведется отсчет в текущий момент
             Point[] newCoord = new Point[maxPoint]; //массив формируемых точек, от которых будет вестись отсчет в следующий момент
             Point[] lineCoord = new Point[maxPoint]; //массив стартовых точек от линий
-            int countLine = 0; //количество точек линий
+            int countLine = 1; //количество точек линий
+            lineCoord[0] = queueTrace.source; //заносится стартовая точка, на случай если придется пересекать другие проводники
             coord[0] = new Point(x, y);             //инициализация источника
             int count = 1;                          //количество точек от которых ведется отсчет в текущий момент
             int newCount = 0;                       //кол-во точек, от которых будет вестись отсчет в следующий момент
 
-            TraceLine tl = null;
+            TraceLine tl = null; //объект проводника
 
-            Point[] allLinePoints = new Point[maxPoint];
+            Point[] allLinePoints = new Point[maxPoint];    //все точки проводников включая 1ю и последнюю
             int countAllLine = 0;
+
+            Random rand = new Random();
+            Color color = Color.FromArgb(rand.Next(180), rand.Next(180),rand.Next(255));
+
             while (dst.X != -1)
             {
                 int j = 0;  //индекс итераций
@@ -361,20 +356,28 @@ namespace TracingProgram
                 //если найден приемник, то нарисовать трассу
                 if (!flag)
                 {
-                    if (tl == null)
+                    //если это первый проводник в комплексе, то провести линию от контакта к контакту
+                    if (tl == null && countAllLine == 0)
                     {
-                        tl = new TraceLine(field, dst.X, dst.Y, sizeCell);
+                        tl = new TraceLine(field, dst.X, dst.Y, sizeCell, color);
                     }
+                    //а иначе провести линию от контакта к проводнику
                     else
                     {
+                        //массив всех точек дополнить точками предыдущего проводника
                         Array.Copy(tl.path, 0, allLinePoints, countAllLine, tl.path.Length);
+                        //и изменить его длину
                         countAllLine += tl.path.Length;
-                        tl = new TraceLineToLine(field, dst.X, dst.Y, sizeCell, allLinePoints);
+                        tl = new TraceLineToLine(field, dst.X, dst.Y, sizeCell, allLinePoints, color);
                     }
+                    //нарисовать проводник
                     tl.draw(pbMainGrid.CreateGraphics());
+                    //и добавить его в список элементов
                     chips.Add(tl);
-                    for(int i = 0; i < field.GetLength(0); i++) {
-                        for (j = 0; j < field.GetLength(1); j++ )
+                    //очищение всех номеров в поле, кроме занятых
+                    for (int i = 0; i < field.GetLength(0); i++)
+                    {
+                        for (j = 0; j < field.GetLength(1); j++)
                         {
                             if (field[i, j].number != -1)
                             {
@@ -383,18 +386,26 @@ namespace TracingProgram
                             }
                         }
                     }
-
-                    Array.Copy(tl.path, 1, lineCoord, countLine, tl.path.Length-1);
+                    //Дополнить массив всех точек точками проведенных проводников в комплексе, кроме 1й  
+                    //и последней точек
+                    Array.Copy(tl.path, 1, lineCoord, countLine, tl.path.Length - 1);
                     countLine += tl.path.Length - 2;
+
+                    //Скопировать в массив текущих точек точки всех проведенных проводников в комплексе
                     Array.Copy(lineCoord, coord, countLine);
                     count = countLine;
-
+                    //пометить точки на поле всех проведенных проводников в комплексе занятыми
                     foreach (Point p in lineCoord)
                     {
                         field[p.Y, p.X].free = false;
                     }
                 }
-                //drawTrace(field, dst);
+                else
+                {
+                    //MessageBox.Show("Приемник не достигнут");
+                }
+                
+                //взять следующий комплекс из очереди
                 dst = queueTrace.Distantion;
             }
         }
@@ -409,200 +420,10 @@ namespace TracingProgram
             }
             catch (InvalidOperationException) { }
         }
-
+        //Предикат для удаления номеров со списка элементов
         private static bool removeNumber(Element el)
         {
             return el is Number;
-        }
-
-        private void drawTrace(Cell[,] field, Point start)
-        {
-            int x = start.X;
-            int y = start.Y;
-            Graphics g = pbMainGrid.CreateGraphics();
-            Element el;
-            if (field[y, x - 1].number > 0)
-            {
-                if (field[y, x - 1].number - 1 == field[y - 1, x - 1].number)
-                {
-                    el = new TopToRight(x - 1, y, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                else if (field[y, x - 1].number - 1 == field[y + 1, x - 1].number)
-                {
-                    el = new BottomToRight(x - 1, y, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                else
-                {
-                    el = new Horizontal(x - 1, y, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                x = x - 1;
-            }
-            else if (field[y, x + 1].number > 0)
-            {
-                if (field[y, x + 1].number - 1 == field[y - 1, x + 1].number)
-                {
-                    el = new TopToLeft(x + 1, y, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                else if (field[y, x + 1].number - 1 == field[y + 1, x + 1].number)
-                {
-                    el = new BottomToLeft(x + 1, y, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                else
-                {
-                    el = new Horizontal(x + 1, y, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                x = x + 1;
-            }
-            else if (field[y + 1, x].number > 0)
-            {
-                if (field[y + 1, x].number - 1 == field[y + 1, x - 1].number)
-                {
-                    el = new TopToLeft(x, y + 1, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                else if (field[y + 1, x].number - 1 == field[y + 1, x + 1].number)
-                {
-                    el = new TopToRight(x, y + 1, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                else
-                {
-                    el = new Vertical(x, y + 1, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                y = y + 1;
-            }
-            else if (field[y - 1, x].number > 0)
-            {
-                if (field[y - 1, x].number - 1 == field[y - 1, x - 1].number)
-                {
-                    el = new BottomToLeft(x, y - 1, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                else if (field[y - 1, x].number - 1 == field[y - 1, x + 1].number)
-                {
-                    el = new BottomToRight(x, y - 1, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                else
-                {
-                    el = new Vertical(x, y - 1, sizeCell);
-                    el.draw(g);
-                    chips.Add(el);
-                }
-                y = y - 1;
-            }
-
-
-
-            do
-            {
-                if (field[y, x].number - 1 == field[y, x - 1].number)
-                {
-                    if (field[y, x - 1].number - 1 == field[y, x - 2].number)
-                    {
-                        el = new Horizontal(x - 1, y, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    else if (field[y, x - 1].number - 1 == field[y - 1, x - 1].number)
-                    {
-                        el = new TopToRight(x - 1, y, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    else if (field[y, x - 1].number - 1 == field[y + 1, x - 1].number)
-                    {
-                        el = new BottomToRight(x - 1, y, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    x = x - 1;
-                }
-                else if (field[y, x].number - 1 == field[y, x + 1].number)
-                {
-                    if (field[y, x + 1].number - 1 == field[y, x + 2].number)
-                    {
-                        el = new Horizontal(x + 1, y, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    if (field[y, x + 1].number - 1 == field[y - 1, x + 1].number)
-                    {
-                        el = new TopToLeft(x + 1, y, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    else if (field[y, x + 1].number - 1 == field[y + 1, x + 1].number)
-                    {
-                        el = new BottomToLeft(x + 1, y, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    x = x + 1;
-                }
-                else if (field[y, x].number - 1 == field[y - 1, x].number)
-                {
-                    if (field[y - 1, x].number - 1 == field[y - 2, x].number)
-                    {
-                        el = new Vertical(x, y - 1, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    if (field[y - 1, x].number - 1 == field[y - 1, x - 1].number)
-                    {
-                        el = new BottomToLeft(x, y - 1, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    else if (field[y - 1, x].number - 1 == field[y - 1, x + 1].number)
-                    {
-                        el = new BottomToRight(x, y - 1, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    y = y - 1;
-                }
-                else if (field[y, x].number - 1 == field[y + 1, x].number)
-                {
-                    if (field[y + 1, x].number - 1 == field[y + 2, x].number)
-                    {
-                        el = new Vertical(x, y + 1, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    if (field[y + 1, x].number - 1 == field[y + 1, x - 1].number)
-                    {
-                        el = new TopToLeft(x, y + 1, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    else if (field[y + 1, x].number - 1 == field[y + 1, x + 1].number)
-                    {
-                        el = new TopToRight(x, y + 1, sizeCell);
-                        el.draw(g);
-                        chips.Add(el);
-                    }
-                    y = y + 1;
-                }
-            } while (field[y, x].number > 1);
         }
     }
 }

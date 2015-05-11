@@ -14,6 +14,15 @@ namespace TracingProgram
         public int y { protected set; get; }
         public int sizeCell { protected set; get; }
 
+        public Line(int x, int y, int sizeCell, Color color)
+        {
+            this.x = x;
+            this.y = y;
+            this.sizeCell = sizeCell;
+            brush = new SolidBrush(color);
+            pen = new Pen(brush);
+        }
+
         public Line(int x, int y, int sizeCell)
         {
             this.x = x;

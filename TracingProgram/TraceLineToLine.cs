@@ -9,7 +9,10 @@ using System.Diagnostics;
 namespace TracingProgram
 {
     class TraceLineToLine:TraceLine
-    {
+    {   
+        /// <summary>
+        /// Задает направление занятой точки
+        /// </summary>
         [Flags]
         enum Direction : byte
         {
@@ -23,15 +26,26 @@ namespace TracingProgram
             CURUP = 0x40,
             CURDOWN = 0x80
         }
-        Cell[,] field;
         Direction direct;
-        public TraceLineToLine(Cell[,] field, int x, int y, int sizeCell, Point[] dist)
-            : base(field, x, y, sizeCell) 
+        /// <summary>
+        /// Рисует линию от контакта к проводнику на дискретном поле с числовой волной
+        /// </summary>
+        /// <param name="field">поле с числовой волной</param>
+        /// <param name="x">стартовая абсцисса</param>
+        /// <param name="y">стартовая ордината</param>
+        /// <param name="sizeCell">размер ячейки на поле</param>
+        /// <param name="dist">точки ранее проведенных проводников, к которым можно присоедениться</param>
+        public TraceLineToLine(Cell[,] field, int x, int y, int sizeCell, Point[] dist, Color col)
+            : base(field, x, y, sizeCell, col) 
         {
-            this.direct = getDirection1(dist);
+            this.direct = getDirection(dist);
         }
-
-        Direction getDirection1(Point[] points)
+        /// <summary>
+        /// Определяет тип присоединения к контакту
+        /// </summary>
+        /// <param name="points">точки ранее проведенных проводников, к которым можно присоедениться</param>
+        /// <returns>Тип присоединения</returns>
+        Direction getDirection(Point[] points)
         {
             int centerX = base.path[path.Length - 1].X;
             int centerY = base.path[path.Length - 1].Y;
@@ -81,61 +95,6 @@ namespace TracingProgram
             return d;
         }
 
-        Direction getDirection(Cell[,] field)
-        {
-
-            int centerX = base.path[path.Length - 1].X;
-            int centerY = base.path[path.Length - 1].Y;
-            int prevX = base.path[path.Length - 2].X;
-            int prevY = base.path[path.Length - 2].Y;
-            Direction direct = Direction.EMPTY;
-            if (!field[centerX - 1, centerY].free && field[centerX - 1, centerY].number != -1)
-            {
-                if (prevX == centerX - 1 && centerY == prevY)
-                {
-                    direct |= Direction.CURLEFT;
-                }
-                else
-                {
-                    direct |= Direction.LEFT;
-                }
-            }
-            if (!field[centerX + 1, centerY].free && field[centerX + 1, centerY].number != -1)
-            {
-                if (prevX == centerX + 1 && centerY == prevY)
-                {
-                    direct |= Direction.CURRIGHT;
-                }
-                else
-                {
-                    direct |= Direction.RIGHT;
-                }
-            }
-            if (!field[centerX, centerY + 1].free && field[centerX, centerY + 1].number != -1)
-            {
-                if (prevX == centerX && centerY == prevY + 1)
-                {
-                    direct |= Direction.CURDOWN;
-                }
-                else
-                {
-                    direct |= Direction.DOWN;
-                }
-            }
-            if (!field[centerX, centerY - 1].free && field[centerX, centerY - 1].number != -1)
-            {
-                if (prevX == centerX && centerY == prevY - 1)
-                {
-                    direct |= Direction.CURUP;
-                }
-                else
-                {
-                    direct |= Direction.UP;
-                }
-            }
-            return direct;
-        }
-
         public override void draw(Graphics g)
         {
             base.draw(g);
@@ -143,7 +102,6 @@ namespace TracingProgram
             int centerY = base.path[path.Length - 1].Y;
 
             Element el;
-            Debug.WriteLine(direct);
             switch (direct)
             {
  
@@ -154,7 +112,7 @@ namespace TracingProgram
                 case (Direction)0x1A:   //CURLEFT & DOWN & RIGHT
                 case (Direction)0x83:   //CURDOWN & LEFT & RIGHT
                 case (Direction)0x29:   //CURRIGHT & DOWN & LEFT
-                    el = new BottomToHorizontal(centerX, centerY, base.sizeCell);
+                    el = new BottomToHorizontal(centerX, centerY, base.sizeCell, this.color);
                     el.draw(g);
                     break;
                /* case (Direction.CURLEFT|Direction.UP|Direction.RIGHT):
@@ -163,7 +121,7 @@ namespace TracingProgram
                 case (Direction)0x16:
                 case (Direction)0x43:
                 case (Direction)0x25:
-                    el = new TopToHorizontal(centerX, centerY, base.sizeCell);
+                    el = new TopToHorizontal(centerX, centerY, base.sizeCell, this.color);
                     el.draw(g);
                     break;
                /* case (Direction.CURLEFT | Direction.UP | Direction.DOWN):
@@ -172,7 +130,7 @@ namespace TracingProgram
                 case (Direction)0x1C:
                 case (Direction)0x49:
                 case (Direction)0x85:
-                    el = new LeftToVertical(centerX, centerY, base.sizeCell);
+                    el = new LeftToVertical(centerX, centerY, base.sizeCell, this.color);
                     el.draw(g);
                     break;
                 /*case (Direction.CURRIGHT | Direction.UP | Direction.DOWN):
@@ -181,12 +139,11 @@ namespace TracingProgram
                 case (Direction)0x2C:
                 case (Direction)0x4A:
                 case (Direction)0x86:
-                    el = new RightToVertical(centerX, centerY, base.sizeCell);
+                    el = new RightToVertical(centerX, centerY, base.sizeCell, this.color);
                     el.draw(g);
                     break;
-
                 default:
-                    el = new CrossWithConnect(centerX, centerY, base.sizeCell);
+                    el = new CrossWithConnect(centerX, centerY, base.sizeCell, this.color);
                     el.draw(g);
                     break;
             }

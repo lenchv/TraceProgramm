@@ -8,7 +8,7 @@ namespace TracingProgram
 {
     class Vertical:Line
     {
-        public Vertical(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public Vertical(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topX
         {
@@ -30,7 +30,7 @@ namespace TracingProgram
 
     class Horizontal : Line
     {
-        public Horizontal(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public Horizontal(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topY
         {
@@ -52,7 +52,7 @@ namespace TracingProgram
 
     class BottomToRight : Line
     {
-        public BottomToRight(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public BottomToRight(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topX
         {
@@ -88,7 +88,7 @@ namespace TracingProgram
 
     class BottomToLeft : Line
     {
-        public BottomToLeft(int x, int y, int sizeCell) : base(x, y, sizeCell) { } 
+        public BottomToLeft(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { } 
         
         public new int topX
         {
@@ -124,7 +124,7 @@ namespace TracingProgram
 
     class TopToRight : Line
     {
-        public TopToRight(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public TopToRight(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topX
         {
@@ -160,7 +160,7 @@ namespace TracingProgram
 
     class TopToLeft : Line
     {
-        public TopToLeft(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public TopToLeft(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topX
         {
@@ -196,7 +196,7 @@ namespace TracingProgram
 
     class BottomToHorizontal : Line
     {
-        public BottomToHorizontal(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public BottomToHorizontal(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
         public new int topX
         {
             get
@@ -236,7 +236,7 @@ namespace TracingProgram
 
     class TopToHorizontal : Line
     {
-        public TopToHorizontal(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public TopToHorizontal(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topX
         {
@@ -276,7 +276,7 @@ namespace TracingProgram
 
     class RightToVertical : Line
     {
-        public RightToVertical(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public RightToVertical(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topX
         {
@@ -317,7 +317,7 @@ namespace TracingProgram
 
     class LeftToVertical : Line
     {
-        public LeftToVertical(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public LeftToVertical(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topX
         {
@@ -357,7 +357,7 @@ namespace TracingProgram
 
     class Cross : Line
     {
-        public Cross(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public Cross(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topX
         {
@@ -392,7 +392,7 @@ namespace TracingProgram
 
     class CrossWithConnect : Line
     {
-        public CrossWithConnect(int x, int y, int sizeCell) : base(x, y, sizeCell) { }
+        public CrossWithConnect(int x, int y, int sizeCell, Color col) : base(x, y, sizeCell, col) { }
 
         public new int topX
         {
