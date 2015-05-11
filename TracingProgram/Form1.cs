@@ -21,6 +21,7 @@ namespace TracingProgram
         int widthGrid = 50;                         //ширина поля в ячейках
         int heightGrid = 50;                        //высота поля в ячейках
         Cell[,] grid;                               //значения каждой ячейки
+        List<Layer> layers = new List<Layer>();
         /// <summary>
         /// Очередь контактов, для трассировки. Каждый элемент очереди содержит
         /// объект с координатами источника, и очередь с координатами приемников
@@ -37,6 +38,44 @@ namespace TracingProgram
             /**клик по дискретному полю*/
             pbMainGrid.MouseClick += pbMainGrid_MouseClick;
 
+            tsbDrawWire.Click += tsbDrawWire_Click;
+
+        }
+
+        void tsbDrawWire_Click(object sender, EventArgs e)
+        {
+            List<TraceLine> wires;
+            QueueTrace wire;
+            Layer layer;
+            for (int i = 0; i < layers.Count; i++)
+            {
+                layer = new Layer(heightGrid, widthGrid, layers[i].number+1);
+                wire = layers[i].queue;
+                while (wire != null)
+                {
+                    wires = methodConnectionComplexes(layers[i].Field, new QueueTrace(wire), layers[i].color);
+                    if (wires == null)
+                    {
+                        layer.queue = new QueueTrace(wire);
+                    }
+                    else
+                    {
+                        foreach (TraceLine tl in wires)
+                        {
+                            layers[i].wire = tl;
+                        }
+                        layers[i].fillField(chips);
+                        pbMainGrid.Invalidate();
+                    }
+                    wire = layers[i].queue;
+                }
+                if (!layer.isEmpty)
+                {
+                    layer.fillField(chips);
+                    addCheckBoxLayer(layer);
+                    layers.Add(layer);
+                }
+            }
         }
 
         void Form1_Load(object sender, EventArgs e)
@@ -46,9 +85,6 @@ namespace TracingProgram
             pbMainGrid.Height = heightGrid * sizeCell;
             tsbClearField_Click(new Object(), new EventArgs());
             grid = new Cell[heightGrid, widthGrid];
-
-            fillCells();
-
         }
 
         /**Клик по дискретному полю*/
@@ -111,6 +147,13 @@ namespace TracingProgram
             {
                 c.draw(e.Graphics);
             }
+            foreach (CheckBox cb in groupBoxLayers.Controls)
+            {
+                if (cb.Checked)
+                {
+                    layers[(int)cb.Tag].draw(e.Graphics);
+                }
+            }
         }
         /*Очистка сетки*/
         void tsbClearField_Click(object sender, EventArgs e)
@@ -132,6 +175,7 @@ namespace TracingProgram
                 XmlElement root = doc.DocumentElement;
                 this.widthGrid = Int32.Parse(root.Attributes.GetNamedItem("width").Value);
                 this.heightGrid = Int32.Parse(root.Attributes.GetNamedItem("height").Value);
+                Layer layer = new Layer(heightGrid, widthGrid, 1);
                 foreach (XmlNode node in root.ChildNodes)
                 {
                     if (node.Name == "Elements")
@@ -170,9 +214,13 @@ namespace TracingProgram
                                 tmp.Add(this.getContactOfChip(dst.Name, i));
                             }
                             distanation.Enqueue(tmp);
+                            layer.queue = new QueueTrace(tmp);
                         }
                     }
                 }
+                layer.fillField(chips);
+                addCheckBoxLayer(layer);
+                layers.Add(layer);
             } 
             catch(ArgumentException ex) {
                 MessageBox.Show("Ошибка: Аргумент\nПодробнее: "+ex.Message);
@@ -195,6 +243,23 @@ namespace TracingProgram
             }
         }
 
+        private void addCheckBoxLayer(Layer l)
+        {
+            CheckBox cb = new CheckBox();
+            cb.Text = l.ToString();
+            cb.ForeColor = l.color;
+            cb.Location = new Point(5, l.number*20);
+            cb.Tag = l.number-1;
+            cb.Checked = true;
+            cb.CheckedChanged += cb_CheckedChanged;
+            groupBoxLayers.Controls.Add(cb);
+        }
+
+        void cb_CheckedChanged(object sender, EventArgs e)
+        {
+            pbMainGrid.Invalidate();
+        }
+
         private Point getContactOfChip(string name, int number)
         {
             foreach (Element chip in chips)
@@ -214,48 +279,7 @@ namespace TracingProgram
             throw new ArgumentException("Элемента с именем " + name + " нет на плате.\nПроверьте конфигурационный файл");
         }
 
-        private void fillCells()
-        {
-
-            for (int i = 0; i < heightGrid; i++)
-            {
-                for (int j = 0; j < widthGrid; j++)
-                {
-                    grid[i, j] = new Cell();
-                }
-            }
-            foreach (Element chip in chips)
-            {
-                if (chip is Chip)
-                {
-                    for (int i = 0; i < (chip as Chip).height; i++)
-                    {
-                        for (int j = 0; j < (chip as Chip).width; j++)
-                        {
-                            grid[i+chip.y, j+chip.x].free = false;
-                            grid[i + chip.y, j + chip.x].number = -1;
-                        }
-                    }
-                }
-                else if (chip is TraceLine)
-                {
-                    Point[] p = (chip as TraceLine).path;
-                    for (int i = 1; i < p.Length-1;  i++)
-                    {
-                        grid[p[i].Y, p[i].X].free = false;
-                        grid[p[i].Y, p[i].X].line = true;
-                        grid[p[i].Y, p[i].X].number = -1;
-                    }
-                }
-                else if (!(chip is Number))
-                {
-                    grid[chip.y, chip.x].free = false;
-                    grid[chip.y, chip.x].number = -1;
-                }
-            }
-        }
-
-        private void methodConnectionComplexes(Cell[,] field, QueueTrace queueTrace) 
+        private List<TraceLine> methodConnectionComplexes(Cell[,] field, QueueTrace queueTrace, Color color) 
         {
             Point dst = queueTrace.Distantion;  //точка приемника
             int x = queueTrace.source.X;        //абсцисса источника
@@ -272,12 +296,9 @@ namespace TracingProgram
             int newCount = 0;                       //кол-во точек, от которых будет вестись отсчет в следующий момент
 
             TraceLine tl = null; //объект проводника
-
+            List<TraceLine> wires = new List<TraceLine>();
             Point[] allLinePoints = new Point[maxPoint];    //все точки проводников включая 1ю и последнюю
             int countAllLine = 0;
-
-            Random rand = new Random();
-            Color color = Color.FromArgb(rand.Next(180), rand.Next(180),rand.Next(255));
 
             while (dst.X != -1)
             {
@@ -309,9 +330,9 @@ namespace TracingProgram
                             field[y, x + 1].number = field[y, x].number+1;  //запись номера ячейки на 1 больше чем предыдущая
                             newCount++;                             //увеличения счетчика кол-ва следующих точек
                             //вывод на экран номера ячейки
-                            Number n = new Number(x + 1, y, sizeCell, field[y, x + 1].number);
+                          /*  Number n = new Number(x + 1, y, sizeCell, field[y, x + 1].number);
                             n.draw(pbMainGrid.CreateGraphics());
-                            chips.Add(n);
+                            chips.Add(n);*/
                         }
                         //если слева свободно
                         if (x > 0 && field[y, x - 1].free)
@@ -320,9 +341,9 @@ namespace TracingProgram
                             field[y, x - 1].free = false;
                             field[y, x - 1].number = field[y, x].number+1;
                             newCount++;
-                            Number n = new Number(x - 1, y, sizeCell, field[y, x - 1].number);
+                            /*Number n = new Number(x - 1, y, sizeCell, field[y, x - 1].number);
                             n.draw(pbMainGrid.CreateGraphics());
-                            chips.Add(n);
+                            chips.Add(n);*/
                         }
                         //если снизу свободно
                         if (y < field.GetLength(0)-1 && field[y+1, x].free)
@@ -331,9 +352,9 @@ namespace TracingProgram
                             field[y + 1, x].free = false;
                             field[y + 1, x].number = field[y, x].number+1;
                             newCount++;
-                            Number n = new Number(x, y + 1, sizeCell, field[y + 1, x].number);
+                            /*Number n = new Number(x, y + 1, sizeCell, field[y + 1, x].number);
                             n.draw(pbMainGrid.CreateGraphics());
-                            chips.Add(n);
+                            chips.Add(n);*/
                         }
                         //если сверху свободно
                         if (y >0 && field[y - 1, x].free)
@@ -342,9 +363,9 @@ namespace TracingProgram
                             field[ y - 1, x].free = false;
                             field[y - 1,x].number = field[y, x].number+1;
                             newCount++;
-                            Number n = new Number(x, y - 1, sizeCell, field[y - 1, x].number);
+                            /*Number n = new Number(x, y - 1, sizeCell, field[y - 1, x].number);
                             n.draw(pbMainGrid.CreateGraphics());
-                            chips.Add(n);
+                            chips.Add(n);*/
                         }
                     }
                     count = newCount;                       //перезапись кол-ва текущих точек
@@ -371,9 +392,9 @@ namespace TracingProgram
                         tl = new TraceLineToLine(field, dst.X, dst.Y, sizeCell, allLinePoints, color);
                     }
                     //нарисовать проводник
-                    tl.draw(pbMainGrid.CreateGraphics());
+                  //  tl.draw(pbMainGrid.CreateGraphics());
                     //и добавить его в список элементов
-                    chips.Add(tl);
+                    wires.Add(tl);
                     //очищение всех номеров в поле, кроме занятых
                     for (int i = 0; i < field.GetLength(0); i++)
                     {
@@ -402,24 +423,15 @@ namespace TracingProgram
                 }
                 else
                 {
-                    //MessageBox.Show("Приемник не достигнут");
+                    return null;
                 }
                 
                 //взять следующий комплекс из очереди
                 dst = queueTrace.Distantion;
             }
+            return wires;
         }
 
-        private void toolStripButton1_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                methodConnectionComplexes(grid, distanation.Dequeue());
-                chips.RemoveAll(removeNumber);
-                fillCells();
-            }
-            catch (InvalidOperationException) { }
-        }
         //Предикат для удаления номеров со списка элементов
         private static bool removeNumber(Element el)
         {

@@ -22,6 +22,17 @@ namespace TracingProgram
             this.source = src;
             this.distanation = new Queue<Point>();
         }
+
+        public QueueTrace(QueueTrace q)
+        {
+            this.source = new Point(q.source.X, q.source.Y);
+            this.distanation = new Queue<Point>();
+            Point[] p = new Point[q.distanation.Count];
+            q.distanation.CopyTo(p, 0);
+            foreach(Point point in p) {
+                this.distanation.Enqueue(point);
+            }
+        }
         /// <summary>
         /// Добавление в очередь координаты приемника 
         /// </summary>
