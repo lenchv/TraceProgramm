@@ -47,7 +47,7 @@ namespace TracingProgram
         {
             get
             {
-                if (distanation.Count > 0)
+                if (distanation.Count > 0 && distanation != null)
                     return distanation.Dequeue();
                 else
                     return new Point(-1,-1);

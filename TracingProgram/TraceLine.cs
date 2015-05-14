@@ -164,19 +164,19 @@ namespace TracingProgram
         /// <returns>Начальная точка отсчета</returns>
         Point getStart(Cell[,] field)
         {
-            if (x > 0 && field[this.y, this.x - 1].number > 0)
+            if (x > 0 && field[this.y, this.x - 1].number >= 0 && !field[this.y, this.x - 1].free)
             {
                 return new Point(this.x-1, this.y);
             }
-            if (x < field.GetLength(1)-1 && field[this.y, this.x + 1].number > 0)
+            if (x < field.GetLength(1) - 1 && field[this.y, this.x + 1].number >= 0 && !field[this.y, this.x + 1].free)
             {
                 return new Point(this.x + 1, this.y);
             }
-            if (y>0 && field[this.y - 1, this.x].number > 0)
+            if (y > 0 && field[this.y - 1, this.x].number >= 0 && !field[this.y - 1, this.x].free)
             {
                 return new Point(this.x, this.y - 1);
             }
-            if (y < field.GetLength(0)-1 && field[this.y+1, this.x].number > 0)
+            if (y < field.GetLength(0) - 1 && field[this.y + 1, this.x].number >= 0 && !field[this.y+1, this.x].free)
             {
                 return new Point(this.x, this.y + 1);
             }

@@ -54,6 +54,7 @@
     <Compile Include="Elements\Line.cs" />
     <Compile Include="Elements\Lines.cs" />
     <Compile Include="Elements\Number.cs" />
+    <Compile Include="FileXML.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>

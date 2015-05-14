@@ -32,12 +32,20 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.tsbClearGrid = new System.Windows.Forms.ToolStripButton();
-            this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.tsbDrawWire = new System.Windows.Forms.ToolStripButton();
+            this.dropDownMode = new System.Windows.Forms.ToolStripDropDownButton();
+            this.demonstrationItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.workItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.workStepItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.workAutoItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pbMainGrid = new System.Windows.Forms.PictureBox();
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             this.groupBoxLayers = new System.Windows.Forms.GroupBox();
+            this.MenuFile = new System.Windows.Forms.ToolStripDropDownButton();
+            this.FileMenuOpen = new System.Windows.Forms.ToolStripMenuItem();
+            this.FileMenuExit = new System.Windows.Forms.ToolStripMenuItem();
+            this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbMainGrid)).BeginInit();
             this.flowLayoutPanel1.SuspendLayout();
@@ -46,9 +54,10 @@
             // toolStrip1
             // 
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsbClearGrid,
-            this.toolStripButton1,
-            this.tsbDrawWire});
+            this.MenuFile,
+            this.dropDownMode,
+            this.tsbDrawWire,
+            this.tsbClearGrid});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(669, 25);
@@ -64,16 +73,6 @@
             this.tsbClearGrid.Size = new System.Drawing.Size(63, 22);
             this.tsbClearGrid.Text = "Очистить";
             // 
-            // toolStripButton1
-            // 
-            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton1.Image")));
-            this.toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButton1.Name = "toolStripButton1";
-            this.toolStripButton1.Size = new System.Drawing.Size(23, 22);
-            this.toolStripButton1.Text = "toolStripButton1";
-            this.toolStripButton1.Click += new System.EventHandler(this.toolStripButton1_Click);
-            // 
             // tsbDrawWire
             // 
             this.tsbDrawWire.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
@@ -82,6 +81,53 @@
             this.tsbDrawWire.Name = "tsbDrawWire";
             this.tsbDrawWire.Size = new System.Drawing.Size(127, 22);
             this.tsbDrawWire.Text = "Провести проводник";
+            // 
+            // dropDownMode
+            // 
+            this.dropDownMode.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.dropDownMode.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.demonstrationItem,
+            this.workItem});
+            this.dropDownMode.Image = ((System.Drawing.Image)(resources.GetObject("dropDownMode.Image")));
+            this.dropDownMode.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.dropDownMode.Name = "dropDownMode";
+            this.dropDownMode.Size = new System.Drawing.Size(58, 22);
+            this.dropDownMode.Text = "Режим";
+            // 
+            // demonstrationItem
+            // 
+            this.demonstrationItem.Checked = true;
+            this.demonstrationItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.demonstrationItem.Name = "demonstrationItem";
+            this.demonstrationItem.Size = new System.Drawing.Size(186, 22);
+            this.demonstrationItem.Tag = "0";
+            this.demonstrationItem.Text = "Демонстрационный";
+            // 
+            // workItem
+            // 
+            this.workItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.workStepItem,
+            this.workAutoItem});
+            this.workItem.Name = "workItem";
+            this.workItem.Size = new System.Drawing.Size(186, 22);
+            this.workItem.Tag = "1";
+            this.workItem.Text = "Рабочий";
+            // 
+            // workStepItem
+            // 
+            this.workStepItem.Checked = true;
+            this.workStepItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.workStepItem.Name = "workStepItem";
+            this.workStepItem.Size = new System.Drawing.Size(159, 22);
+            this.workStepItem.Tag = "2";
+            this.workStepItem.Text = "Пошагово";
+            // 
+            // workAutoItem
+            // 
+            this.workAutoItem.Name = "workAutoItem";
+            this.workAutoItem.Size = new System.Drawing.Size(159, 22);
+            this.workAutoItem.Tag = "3";
+            this.workAutoItem.Text = "Автоматически";
             // 
             // pbMainGrid
             // 
@@ -121,6 +167,38 @@
             this.groupBoxLayers.TabStop = false;
             this.groupBoxLayers.Text = "Слои";
             // 
+            // MenuFile
+            // 
+            this.MenuFile.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.MenuFile.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.FileMenuOpen,
+            this.FileMenuExit});
+            this.MenuFile.Image = ((System.Drawing.Image)(resources.GetObject("MenuFile.Image")));
+            this.MenuFile.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.MenuFile.Name = "MenuFile";
+            this.MenuFile.Size = new System.Drawing.Size(49, 22);
+            this.MenuFile.Text = "Файл";
+            // 
+            // FileMenuOpen
+            // 
+            this.FileMenuOpen.Name = "FileMenuOpen";
+            this.FileMenuOpen.Size = new System.Drawing.Size(152, 22);
+            this.FileMenuOpen.Text = "Открыть";
+            this.FileMenuOpen.Click += new System.EventHandler(this.FileMenuOpen_Click);
+            // 
+            // FileMenuExit
+            // 
+            this.FileMenuExit.Name = "FileMenuExit";
+            this.FileMenuExit.Size = new System.Drawing.Size(152, 22);
+            this.FileMenuExit.Text = "Выход";
+            this.FileMenuExit.Click += new System.EventHandler(this.FileMenuExit_Click);
+            // 
+            // openFileDialog1
+            // 
+            this.openFileDialog1.DefaultExt = "xml";
+            this.openFileDialog1.FileName = "openFileDialog1";
+            this.openFileDialog1.InitialDirectory = ".";
+            // 
             // Form1
             // 
             this.AutoScroll = true;
@@ -144,10 +222,18 @@
         private System.Windows.Forms.PictureBox pbMainGrid;
         private System.Windows.Forms.ToolStripButton tsbClearGrid;
         private System.Windows.Forms.ImageList imageList1;
-        private System.Windows.Forms.ToolStripButton toolStripButton1;
         private System.Windows.Forms.ToolStripButton tsbDrawWire;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
         private System.Windows.Forms.GroupBox groupBoxLayers;
+        private System.Windows.Forms.ToolStripDropDownButton dropDownMode;
+        private System.Windows.Forms.ToolStripMenuItem demonstrationItem;
+        private System.Windows.Forms.ToolStripMenuItem workItem;
+        private System.Windows.Forms.ToolStripMenuItem workStepItem;
+        private System.Windows.Forms.ToolStripMenuItem workAutoItem;
+        private System.Windows.Forms.ToolStripDropDownButton MenuFile;
+        private System.Windows.Forms.ToolStripMenuItem FileMenuOpen;
+        private System.Windows.Forms.ToolStripMenuItem FileMenuExit;
+        private System.Windows.Forms.OpenFileDialog openFileDialog1;
     }
 }
 

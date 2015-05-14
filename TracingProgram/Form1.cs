@@ -16,12 +16,26 @@ namespace TracingProgram
 {
     public partial class Form1 : Form
     {
+        FileXML file;
         List<Element> chips = new List<Element>();  //список всех выводимых элементов
         int sizeCell = 16;                          //размер ячейки
         int widthGrid = 50;                         //ширина поля в ячейках
         int heightGrid = 50;                        //высота поля в ячейках
-        Cell[,] grid;                               //значения каждой ячейки
+
+        Cell[,] demonstrationField;                               
+        Point[] demoPoints;
+        QueueTrace demoWire;
+        QueueTrace demoBackUpWire;
+        Point demoEnd;
+        bool demoStart = false;
+        List<TraceLine> demoComplexLines = new List<TraceLine>();
         List<Layer> layers = new List<Layer>();
+        Layer demoLayer;
+        int demoLayerPointer;
+        bool demonstrationMode;
+        bool workMode;
+        bool workModeAuto;
+        bool workModeStep;
         /// <summary>
         /// Очередь контактов, для трассировки. Каждый элемент очереди содержит
         /// объект с координатами источника, и очередь с координатами приемников
@@ -40,6 +54,40 @@ namespace TracingProgram
 
             tsbDrawWire.Click += tsbDrawWire_Click;
 
+            demonstrationItem.Click += modeItem_CheckedChanged;
+            workItem.Click += modeItem_CheckedChanged;
+            workStepItem.Click += modeItem_CheckedChanged;
+            workAutoItem.Click += modeItem_CheckedChanged;
+        }
+
+        void modeItem_CheckedChanged(object sender, EventArgs e)
+        {
+            (sender as ToolStripMenuItem).CheckState = CheckState.Checked;
+            if ((String)(sender as ToolStripMenuItem).Tag == "0")
+            {
+                demonstrationMode = true;
+                workMode = false;
+                workItem.CheckState = CheckState.Unchecked;
+            }
+            else if ((String)(sender as ToolStripMenuItem).Tag == "1")
+            {
+                workMode = true;
+                demonstrationMode = false;
+                demonstrationItem.CheckState = CheckState.Unchecked;
+            }
+            else if ((String)(sender as ToolStripMenuItem).Tag == "2")
+            {
+                workModeStep = true;
+                workModeAuto = false;
+                workAutoItem.CheckState = CheckState.Unchecked;
+            }
+            else
+            {
+                workModeAuto = true;
+                workModeStep = false;
+                workStepItem.CheckState = CheckState.Unchecked;
+            }
+            initFromFile(file.name);
         }
 
         void tsbDrawWire_Click(object sender, EventArgs e)
@@ -47,44 +95,184 @@ namespace TracingProgram
             List<TraceLine> wires;
             QueueTrace wire;
             Layer layer;
-            for (int i = 0; i < layers.Count; i++)
+            if (workMode)
             {
-                layer = new Layer(heightGrid, widthGrid, layers[i].number+1);
-                wire = layers[i].queue;
-                while (wire != null)
+                if (workModeAuto)
                 {
-                    wires = methodConnectionComplexes(layers[i].Field, new QueueTrace(wire), layers[i].color);
-                    if (wires == null)
+                    for (int i = 0; i < layers.Count; i++)
                     {
-                        layer.queue = new QueueTrace(wire);
-                    }
-                    else
-                    {
-                        foreach (TraceLine tl in wires)
+                        layer = new Layer(heightGrid, widthGrid, layers[i].number + 1);
+                        wire = layers[i].queue;
+                        while (wire != null)
                         {
-                            layers[i].wire = tl;
+                            wires = methodConnectionComplexes(layers[i].Field, new QueueTrace(wire), layers[i].color);
+                            if (wires == null)
+                            {
+                                layer.queue = new QueueTrace(wire);
+                            }
+                            else
+                            {
+                                foreach (TraceLine tl in wires)
+                                {
+                                    layers[i].wire = tl;
+                                }
+                                layers[i].fillField(chips);
+                                pbMainGrid.Invalidate();
+                            }
+                            wire = layers[i].queue;
                         }
-                        layers[i].fillField(chips);
+                        if (!layer.isEmpty)
+                        {
+                            layer.fillField(chips);
+                            addCheckBoxLayer(layer);
+                            layers.Add(layer);
+                        }
+                    }
+                }
+            }
+            if (demonstrationMode)
+            {
+                if (!demoStart)
+                {
+                    layers[demoLayerPointer].fillField(chips);
+                    demoWire = layers[demoLayerPointer].queue;
+                    if (demoWire != null)
+                    {
+                        demoBackUpWire = new QueueTrace(demoWire);
+                        demoPoints = new Point[1];
+                        demoPoints[0] = demoWire.source;
+                        layers[demoLayerPointer].Field[demoPoints[0].Y, demoPoints[0].X].number = 0;
+                        demoEnd = demoWire.Distantion;
+                        demoStart = true;
+                    }
+                }
+                if (demoWire != null)
+                {
+                    demonstrationField = layers[demoLayerPointer].Field;
+                    demoPoints = demoMethodConnectionComplexes(ref demonstrationField, demoPoints, demoEnd);
+                
+                    if (demoPoints.Length > 0 && demoPoints[0].Equals(demoEnd))
+                    {
+                        TraceLine tl;
+                        if (demoComplexLines.Count == 0)
+                        {
+                            tl = new TraceLine(layers[demoLayerPointer].Field, demoEnd.X, demoEnd.Y, sizeCell, layers[demoLayerPointer].color);
+                        }
+                        else
+                        {
+                            demoPoints = new Point[layers[demoLayerPointer].Field.Length];
+                            int i = 0;
+                            foreach (TraceLine el in demoComplexLines) 
+                            {
+                                Array.Copy(el.path, 0, demoPoints, i, el.path.Length);
+                                i = el.path.Length;
+                            }
+                            Array.Resize(ref demoPoints, i);
+                            tl = new TraceLineToLine(layers[demoLayerPointer].Field, demoEnd.X, demoEnd.Y, sizeCell, demoPoints, layers[demoLayerPointer].color);
+                        }
+                        tl.draw(pbMainGrid.CreateGraphics());
+                        layers[demoLayerPointer].wire = tl;
+                        demoComplexLines.Add(tl);
+                        demoEnd = demoWire.Distantion;
+                        if (demoEnd.X == -1)
+                        {
+                            demoStart = false;
+                            demoComplexLines.Clear();
+                            chips.RemoveAll(removeNumber);
+                            pbMainGrid.Invalidate();
+                        }
+                        else
+                        {
+                            updateDemoField();
+                        }
+                    }
+                    else if (demoPoints.Length == 0)
+                    {
+                        demoLayer.queue = new QueueTrace(demoBackUpWire);
+                        demoStart = false;
+                        demoComplexLines.Clear();
+                        chips.RemoveAll(removeNumber);
                         pbMainGrid.Invalidate();
                     }
-                    wire = layers[i].queue;
                 }
-                if (!layer.isEmpty)
+                else if (!demoLayer.isEmpty)
                 {
-                    layer.fillField(chips);
-                    addCheckBoxLayer(layer);
-                    layers.Add(layer);
+                    demoLayerPointer++;
+                    demoLayer.fillField(chips);
+                    addCheckBoxLayer(demoLayer);
+                    layers.Add(demoLayer);
+                    demoLayer = new Layer(heightGrid, widthGrid, layers[demoLayerPointer].number + 1);
                 }
             }
         }
 
+        void updateDemoField()
+        {
+            //очищение всех номеров в поле, кроме занятых
+            for (int i = 0; i < layers[demoLayerPointer].Field.GetLength(0); i++)
+            {
+                for (int j = 0; j < layers[demoLayerPointer].Field.GetLength(1); j++)
+                {
+                    if (layers[demoLayerPointer].Field[i, j].number != -1)
+                    {
+                        layers[demoLayerPointer].Field[i, j].number = 0;
+                        layers[demoLayerPointer].Field[i, j].free = true;
+                    }
+                }
+            }
+            demoPoints = new Point[layers[demoLayerPointer].Field.Length];
+            int index = 0;            
+            if (demoStart)
+            {
+                if (demoComplexLines.Count > 0)
+                {
+                    foreach (TraceLine el in demoComplexLines)
+                    {
+                        Array.Copy(el.path, 1, demoPoints, index, el.path.Length - 1);
+                        index = el.path.Length-1;
+                    }
+                }
+                else
+                {
+                    demoPoints[index++] = demoWire.source;
+                }
+            }
+            else
+            {
+                if (demoWire != null)
+                {
+                    demoPoints[index++] = demoWire.source;
+                }
+                else
+                {
+                    demoPoints[index++] = new Point(0, 0);
+                }
+            }
+            
+            Array.Resize(ref demoPoints, index);
+            //пометить точки на поле всех проведенных проводников в комплексе занятыми
+            foreach (Point p in demoPoints)
+            {
+                layers[demoLayerPointer].Field[p.Y, p.X].free = false;
+            }
+            chips.RemoveAll(removeNumber);
+            pbMainGrid.Invalidate();
+        }
+
         void Form1_Load(object sender, EventArgs e)
         {
-            addElementsFromFile("test.xml");
-            pbMainGrid.Width = widthGrid * sizeCell;
-            pbMainGrid.Height = heightGrid * sizeCell;
-            tsbClearField_Click(new Object(), new EventArgs());
-            grid = new Cell[heightGrid, widthGrid];
+            try
+            {
+                demonstrationMode = demonstrationItem.Checked;
+                workMode = workItem.Checked;
+                workModeAuto = workAutoItem.Checked;
+                workModeStep = workStepItem.Checked;
+                initFromFile("demonstration.xml");
+            }
+            catch (ArgumentException ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         /**Клик по дискретному полю*/
@@ -162,85 +350,13 @@ namespace TracingProgram
             g.Clear(Color.Gray);
             pbMainGrid.BackgroundImage = imageList1.Images[0];
             this.sizeCell = imageList1.Images[0].Height;
-        }
+            chips.RemoveAll(removeNumber);
+            foreach(Layer l in layers) 
+            {
+                l.fillField(chips);
+            }
 
-        /*Parse XML*/
-        public void addElementsFromFile(string filename)
-        {
-            try
-            {
-                FileStream file = new FileStream(filename,FileMode.Open);
-                XmlDocument doc = new XmlDocument();
-                doc.Load(file);
-                XmlElement root = doc.DocumentElement;
-                this.widthGrid = Int32.Parse(root.Attributes.GetNamedItem("width").Value);
-                this.heightGrid = Int32.Parse(root.Attributes.GetNamedItem("height").Value);
-                Layer layer = new Layer(heightGrid, widthGrid, 1);
-                foreach (XmlNode node in root.ChildNodes)
-                {
-                    if (node.Name == "Elements")
-                    {
-                        foreach (XmlNode el in node.ChildNodes)
-                        {
-                            int x = Int32.Parse(el.Attributes.GetNamedItem("x").Value);
-                            int y = Int32.Parse(el.Attributes.GetNamedItem("y").Value);
-                            string name = el.Attributes.GetNamedItem("Name").Value;
-                            switch(el.Name.ToLower()) {
-                                case "dip14": 
-                                    chips.Add(new Dip14(x,y,this.sizeCell,name));
-                                    break;
-                                case "dip16":
-                                    chips.Add(new Dip16(x, y, this.sizeCell, name));
-                                    break;
-                                case "dip24":
-                                    chips.Add(new Dip24(x, y, this.sizeCell, name));
-                                    break;
-                                case "contact":
-                                    chips.Add(new Contact(x, y, this.sizeCell,1, name));
-                                    break;
-                            }
-                            chips.Last().draw(this.pbMainGrid.CreateGraphics());
-                        }
-                    }
-                    else if (node.Name == "Connections")
-                    {
-                        foreach (XmlNode con in node.ChildNodes)
-                        {
-                            int i = Int32.Parse(con.Attributes.GetNamedItem("contact").Value);
-                            QueueTrace tmp = new QueueTrace(this.getContactOfChip(con.Name, i));
-                            foreach (XmlNode dst in con.ChildNodes)
-                            {
-                                i = Int32.Parse(dst.Attributes.GetNamedItem("contact").Value);
-                                tmp.Add(this.getContactOfChip(dst.Name, i));
-                            }
-                            distanation.Enqueue(tmp);
-                            layer.queue = new QueueTrace(tmp);
-                        }
-                    }
-                }
-                layer.fillField(chips);
-                addCheckBoxLayer(layer);
-                layers.Add(layer);
-            } 
-            catch(ArgumentException ex) {
-                MessageBox.Show("Ошибка: Аргумент\nПодробнее: "+ex.Message);
-            }
-            catch (SecurityException ex)
-            {
-                MessageBox.Show("Ошибка: Безопасность\nПодробнее: " + ex.Message);
-            }
-            catch (FileNotFoundException ex)
-            {
-                MessageBox.Show("Ошибка: Не найден файл\nПодробнее: " + ex.Message);
-            }
-            catch (IOException ex)
-            {
-                MessageBox.Show("Ошибка: Ввод\\Вывод\nПодробнее: " + ex.Message);
-            }
-            catch (XmlException ex)
-            {
-                MessageBox.Show("Ошибка: XML\nПодробнее: " + ex.Message);
-            }
+            updateDemoField();
         }
 
         private void addCheckBoxLayer(Layer l)
@@ -258,25 +374,6 @@ namespace TracingProgram
         void cb_CheckedChanged(object sender, EventArgs e)
         {
             pbMainGrid.Invalidate();
-        }
-
-        private Point getContactOfChip(string name, int number)
-        {
-            foreach (Element chip in chips)
-            {
-                if (name == chip.Name)
-                {
-                    if (chip is Chip)
-                    {
-                        return (chip as Chip).getContactPoint(number);
-                    }
-                    else if (chip is Contact)
-                    {
-                        return new Point((chip as Contact).x, (chip as Contact).y);
-                    }
-                }
-            }
-            throw new ArgumentException("Элемента с именем " + name + " нет на плате.\nПроверьте конфигурационный файл");
         }
 
         private List<TraceLine> methodConnectionComplexes(Cell[,] field, QueueTrace queueTrace, Color color) 
@@ -330,7 +427,7 @@ namespace TracingProgram
                             field[y, x + 1].number = field[y, x].number+1;  //запись номера ячейки на 1 больше чем предыдущая
                             newCount++;                             //увеличения счетчика кол-ва следующих точек
                             //вывод на экран номера ячейки
-                          /*  Number n = new Number(x + 1, y, sizeCell, field[y, x + 1].number);
+                           /* Number n = new Number(x + 1, y, sizeCell, field[y, x + 1].number);
                             n.draw(pbMainGrid.CreateGraphics());
                             chips.Add(n);*/
                         }
@@ -392,7 +489,7 @@ namespace TracingProgram
                         tl = new TraceLineToLine(field, dst.X, dst.Y, sizeCell, allLinePoints, color);
                     }
                     //нарисовать проводник
-                  //  tl.draw(pbMainGrid.CreateGraphics());
+                    //tl.draw(pbMainGrid.CreateGraphics());
                     //и добавить его в список элементов
                     wires.Add(tl);
                     //очищение всех номеров в поле, кроме занятых
@@ -432,10 +529,156 @@ namespace TracingProgram
             return wires;
         }
 
+        Point[] demoMethodConnectionComplexes(ref Cell[,] field, Point[] start, Point end)
+        {
+            int maxPoint = field.GetLength(0) * field.GetLength(1); //максимальное количество точек на поле            
+            Point[] newCoord = new Point[maxPoint]; //массив формируемых точек, от которых будет вестись отсчет в следующий момент
+            int newCount = 0;                       //кол-во точек, от которых будет вестись отсчет в следующий момент
+            foreach (Point p in start)
+            {
+                //текущие координаты
+                int x = p.X;
+                int y = p.Y;
+                //если следующая ячейка приемник, выход
+                if (x + 1 == end.X && y == end.Y ||
+                    x - 1 == end.X && y == end.Y ||
+                    x == end.X && y + 1 == end.Y ||
+                    x == end.X && y - 1 == end.Y)
+                {
+                    newCount = 1;
+                    newCoord[0] = new Point(end.X, end.Y);
+                    break;
+                }
+                //если справа свободно
+                if (x < field.GetLength(1) - 1 && field[y, x + 1].free)
+                {
+                    newCoord[newCount] = new Point(x + 1, y);  //следующая точка отсчета
+                    field[y, x + 1].free = false;           //ячейка занята
+                    field[y, x + 1].number = field[y, x].number + 1;  //запись номера ячейки на 1 больше чем предыдущая
+                    newCount++;                             //увеличения счетчика кол-ва следующих точек
+                    //вывод на экран номера ячейки
+                     Number n = new Number(x + 1, y, sizeCell, field[y, x + 1].number);
+                     n.draw(pbMainGrid.CreateGraphics());
+                     chips.Add(n);
+                }
+                //если слева свободно
+                if (x > 0 && field[y, x - 1].free)
+                {
+                    newCoord[newCount] = new Point(x - 1, y);
+                    field[y, x - 1].free = false;
+                    field[y, x - 1].number = field[y, x].number + 1;
+                    newCount++;
+                    Number n = new Number(x - 1, y, sizeCell, field[y, x - 1].number);
+                    n.draw(pbMainGrid.CreateGraphics());
+                    chips.Add(n);
+                }
+                //если снизу свободно
+                if (y < field.GetLength(0) - 1 && field[y + 1, x].free)
+                {
+                    newCoord[newCount] = new Point(x, y + 1);
+                    field[y + 1, x].free = false;
+                    field[y + 1, x].number = field[y, x].number + 1;
+                    newCount++;
+                    Number n = new Number(x, y + 1, sizeCell, field[y + 1, x].number);
+                    n.draw(pbMainGrid.CreateGraphics());
+                    chips.Add(n);
+                }
+                //если сверху свободно
+                if (y > 0 && field[y - 1, x].free)
+                {
+                    newCoord[newCount] = new Point(x, y - 1);
+                    field[y - 1, x].free = false;
+                    field[y - 1, x].number = field[y, x].number + 1;
+                    newCount++;
+                    Number n = new Number(x, y - 1, sizeCell, field[y - 1, x].number);
+                    n.draw(pbMainGrid.CreateGraphics());
+                    chips.Add(n);
+                }
+            }
+            Array.Resize(ref newCoord, newCount);
+            return newCoord;
+        }
+
+        void fillField(List<Element> elements)
+        {
+            for (int i = 0; i < demonstrationField.GetLength(0); i++)
+                for (int j = 0; j < demonstrationField.GetLength(1); j++)
+                {
+                    demonstrationField[i, j] = new Cell();
+                }
+            foreach (Element el in elements)
+            {
+                if (el is Chip)
+                {
+                    for (int i = 0; i < (el as Chip).height; i++)
+                    {
+                        for (int j = 0; j < (el as Chip).width; j++)
+                        {
+                            demonstrationField[i + el.y, j + el.x].free = false;
+                            demonstrationField[i + el.y, j + el.x].number = -1;
+                        }
+                    }
+                }
+                else if (el is Contact)
+                {
+                    demonstrationField[el.y, el.x].free = false;
+                    demonstrationField[el.y, el.x].number = -1;
+                }
+                else if (el is TraceLine)
+                {
+                    foreach (Point p in (el as TraceLine).path)
+                    {
+                        demonstrationField[p.Y, p.X].free = false;
+                        demonstrationField[p.Y, p.X].number = -1;
+                    }
+                }
+            }
+        }
+
         //Предикат для удаления номеров со списка элементов
         private static bool removeNumber(Element el)
         {
             return el is Number;
+        }
+
+        private void FileMenuExit_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void FileMenuOpen_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                initFromFile(openFileDialog1.FileName);
+            }
+        }
+
+        void initFromFile(string name)
+        {
+            try
+            {
+                file = new FileXML(name, sizeCell, pbMainGrid.CreateGraphics());
+                this.widthGrid = file.widthGrid;
+                this.heightGrid = file.heightGrid;
+                layers.Clear();
+                layers.Add(file.layer);
+                file.CopyChips(out chips);
+                groupBoxLayers.Controls.Clear();
+                addCheckBoxLayer(layers[0]);
+                pbMainGrid.Width = widthGrid * sizeCell;
+                pbMainGrid.Height = heightGrid * sizeCell;
+                demonstrationField = new Cell[heightGrid, widthGrid];
+                fillField(chips);
+                tsbClearField_Click(new Object(), new EventArgs());
+                demoStart = false;
+                demoLayer = new Layer(heightGrid, widthGrid, layers[demoLayerPointer].number + 1);
+                demoLayerPointer = 0;
+            }
+            catch (ArgumentException ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
     }
 }
